@@ -5,7 +5,11 @@
       "Bash(git --version)",
       "Bash(brew --version)",
       "Bash(brew install *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(gh --version)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(gh pr create --title 'Add completion burst animation on last step' --body ' *)",
+      "Bash(gh pr create --base main --head feat/completion-burst --title 'Add completion burst animation on last step' --body ' *)"
     ]
   }
 }
