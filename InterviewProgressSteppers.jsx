@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Check,
   ChevronLeft,
@@ -31,9 +31,24 @@ const STEPS = [
 /* ────────────────────────────────────────────────────────────
    Shared shell: title, body slot, Back / Next footer.
    ──────────────────────────────────────────────────────────── */
+const SPARK_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
+
 function StepperShell({ title, kicker, current, setCurrent, total, children }) {
   const isFirst = current === 0;
   const isLast = current === total - 1;
+  const [burst, setBurst] = useState(false);
+  const prevCurrent = useRef(current);
+
+  useEffect(() => {
+    if (current === total - 1 && prevCurrent.current < total - 1) {
+      setBurst(true);
+      const t = setTimeout(() => setBurst(false), 1000);
+      prevCurrent.current = current;
+      return () => clearTimeout(t);
+    }
+    prevCurrent.current = current;
+  }, [current, total]);
+
   return (
     <section className="ips-card" aria-labelledby={`ttl-${title}`}>
       <header className="ips-card-head">
@@ -48,7 +63,7 @@ function StepperShell({ title, kicker, current, setCurrent, total, children }) {
 
       <div className="ips-card-body">{children}</div>
 
-      <footer className="ips-card-foot">
+      <footer className="ips-card-foot" data-burst={burst || undefined}>
         <button
           type="button"
           className="ips-btn ips-btn-ghost"
@@ -59,16 +74,29 @@ function StepperShell({ title, kicker, current, setCurrent, total, children }) {
           <ChevronLeft size={16} aria-hidden="true" />
           <span>Back</span>
         </button>
-        <button
-          type="button"
-          className="ips-btn ips-btn-primary"
-          onClick={() => setCurrent(Math.min(total - 1, current + 1))}
-          disabled={isLast}
-          aria-label="Go to next step"
-        >
-          <span>{isLast ? "Done" : "Next step"}</span>
-          {!isLast && <ChevronRight size={16} aria-hidden="true" />}
-        </button>
+        <span className="ips-done-wrap">
+          {burst && (
+            <span className="ips-burst" aria-hidden="true">
+              {SPARK_ANGLES.map((angle, i) => (
+                <span
+                  key={i}
+                  className="ips-spark"
+                  style={{ "--angle": `${angle}deg`, "--i": i }}
+                />
+              ))}
+            </span>
+          )}
+          <button
+            type="button"
+            className={`ips-btn ips-btn-primary${burst ? " ips-btn-done-burst" : ""}`}
+            onClick={() => setCurrent(Math.min(total - 1, current + 1))}
+            disabled={isLast}
+            aria-label="Go to next step"
+          >
+            <span>{isLast ? "Done" : "Next step"}</span>
+            {!isLast && <ChevronRight size={16} aria-hidden="true" />}
+          </button>
+        </span>
       </footer>
     </section>
   );
@@ -1219,6 +1247,44 @@ const CSS = `
   border-radius: 4px;
   padding: 1px 6px;
   font-size: 11px;
+}
+
+/* ── Completion burst ───────────────────────────────────── */
+.ips-done-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.ips-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+}
+.ips-spark {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--c-accent);
+  animation: spark-fly 0.7s cubic-bezier(.2,.8,.3,1) forwards;
+  animation-delay: calc(var(--i) * 18ms);
+}
+.ips-spark:nth-child(2n)   { background: var(--c-accent-2); width: 4px; height: 4px; }
+.ips-spark:nth-child(3n)   { background: color-mix(in srgb, var(--c-accent) 60%, #fff); }
+.ips-spark:nth-child(4n)   { width: 3px; height: 3px; }
+@keyframes spark-fly {
+  0%   { transform: rotate(var(--angle)) translateY(0)    scale(1);   opacity: 1; }
+  60%  { opacity: 1; }
+  100% { transform: rotate(var(--angle)) translateY(-28px) scale(0);  opacity: 0; }
+}
+.ips-btn-done-burst {
+  animation: done-pop 0.5s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes done-pop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.08); box-shadow: 0 0 0 6px color-mix(in srgb, var(--c-accent) 22%, transparent); }
+  100% { transform: scale(1); box-shadow: none; }
 }
 
 /* ── Reduced motion ─────────────────────────────────────── */
